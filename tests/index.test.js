@@ -1,3 +1,12 @@
+function FartError(name, message, options) {
+  this.name = "Fart" + name;
+  this.message = message;
+  this.options = options;
+}
+
+FartError.prototype = Object.create(Error.prototype);
+FartError.prototype.constructor = FartError;
+
 function request(url, options, controller) {
   var timeout = (options && options.timeout) || 3000;
   var timeoutAbort = false;
@@ -11,19 +20,35 @@ function request(url, options, controller) {
       clearTimeout(timeoutInterval);
       if (err.name === "AbortError") {
         if (timeoutAbort) {
-          throw { name: "FartTimeoutError" };
+          throw new FartError(
+            "TimeoutError",
+            "Request failed due to timeout",
+            options
+          );
         }
-        throw { name: "FartAbortError" };
+        throw new FartError(
+          "AbortError",
+          "Request was aborted by the user",
+          options
+        );
       }
-      throw err;
+      throw new FartError(err.name, err.message, options);
     })
     .then(function (response) {
       clearTimeout(timeoutInterval);
       if (!response.ok) {
-        throw { name: "FartHttpStatusError" };
+        throw new FartError(
+          "HttpStatusError",
+          "Response has non 2** status",
+          options
+        );
       }
       return response.json().catch(function (err) {
-        throw { name: "FartParseError" };
+        throw new FartError(
+          "ParseError",
+          "Response has non JSON format",
+          options
+        );
       });
     });
 }
@@ -129,7 +154,7 @@ describe("fetch-art", () => {
     });
 
     it("retries timedout requests", () => {
-      return fart(`${baseUrl}/timeout-retry`, { timeout: 100 }).then((data) => {
+      return fart(`${baseUrl}/timeout-retry`, { timeout: 200 }).then((data) => {
         expect(data.answer).to.equal(42);
       });
     });
