@@ -129,7 +129,7 @@ describe("fetch-art", () => {
     });
 
     it("retries timedout requests", () => {
-      return fart(`${baseUrl}/timeout-retry`, { timeout: 50 }).then((data) => {
+      return fart(`${baseUrl}/timeout-retry`, { timeout: 100 }).then((data) => {
         expect(data.answer).to.equal(42);
       });
     });
