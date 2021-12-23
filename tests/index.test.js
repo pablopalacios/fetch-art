@@ -22,7 +22,9 @@ function request(url, options, controller) {
       if (!response.ok) {
         throw { name: "FartHttpStatusError" };
       }
-      return response;
+      return response.json().catch(function (err) {
+        throw { name: "FartParseError" };
+      });
     });
 }
 
@@ -55,12 +57,22 @@ function fart(url, options) {
 }
 
 describe("fetch-art", () => {
-  const baseUrl = "http://localhost:8000/api";
+  const host = "http://localhost:8000";
+  const path = "/api";
+  const baseUrl = `${host}${path}`;
 
-  it("works", () => {
-    return fart(`${baseUrl}/42`)
-      .then((response) => response.json())
-      .then((data) => expect(data.answer).to.equal(42));
+  describe("JSON Support", () => {
+    it("returns parsed response", () => {
+      return fart(`${baseUrl}/42`).then((data) =>
+        expect(data.answer).to.equal(42)
+      );
+    });
+
+    it("throws ParseError if cant parse response", () => {
+      return fart(host).catch((err) => {
+        expect(err.name).to.equal("FartParseError");
+      });
+    });
   });
 
   describe("Abort support", () => {
@@ -102,11 +114,9 @@ describe("fetch-art", () => {
     });
 
     it("automatic retry", () => {
-      return fart(`${baseUrl}/retry`)
-        .then((response) => response.json())
-        .then((data) => {
-          expect(data.answer).to.equal(42);
-        });
+      return fart(`${baseUrl}/retry`).then((data) => {
+        expect(data.answer).to.equal(42);
+      });
     });
 
     it("does not retry aborted requests", () => {
@@ -119,11 +129,9 @@ describe("fetch-art", () => {
     });
 
     it("retries timedout requests", () => {
-      return fart(`${baseUrl}/timeout-retry`, { timeout: 50 })
-        .then((response) => response.json())
-        .then((data) => {
-          expect(data.answer).to.equal(42);
-        });
+      return fart(`${baseUrl}/timeout-retry`, { timeout: 50 }).then((data) => {
+        expect(data.answer).to.equal(42);
+      });
     });
 
     it("does not retry more than 2 times", () => {
