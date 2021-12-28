@@ -17,12 +17,18 @@ api.get("/delay/:delay", (req, res) => {
 const retry = {
   ok: false,
   timeout: false,
+  attempts: 0,
 };
 
 api.get("/retry/reset", (req, res) => {
   retry.ok = false;
   retry.timeout = false;
+  retry.attempts = 0;
   res.json(retry).end();
+});
+
+api.get("/retry/attempts", (req, res) => {
+  res.json({ attempts: retry.attempts }).end();
 });
 
 api.get("/retry", (req, res) => {
@@ -32,6 +38,11 @@ api.get("/retry", (req, res) => {
     retry.ok = true;
     res.status(502).json(retry);
   }
+});
+
+api.get("/always-retry", (req, res) => {
+  retry.attempts += 1;
+  res.status(502).json({ attempts: retry.attempts });
 });
 
 api.get("/timeout-retry", (req, res) => {

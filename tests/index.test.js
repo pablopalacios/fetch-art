@@ -159,10 +159,15 @@ describe("fetch-art", () => {
       });
     });
 
-    it("does not retry more than 2 times", () => {
-      return fart(`${baseUrl}/error`).catch((err) => {
-        expect(err.name).to.equal("FartHttpStatusError");
-      });
+    it("does not retry more than 5 times", () => {
+      return fart(`${baseUrl}/always-retry`, { maxAttempts: 5 })
+        .catch((err) => {
+          expect(err.name).to.equal("FartHttpStatusError");
+          return fart(`${baseUrl}/retry/attempts`);
+        })
+        .then((data) => {
+          expect(data.attempts).to.equal(5);
+        });
     });
   });
 });
