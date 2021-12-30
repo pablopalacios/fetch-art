@@ -15,8 +15,25 @@ function request(url, options, controller) {
     controller.abort();
   }, timeout);
 
-  return fetch(url, { signal: controller.signal })
-    .catch(function (err) {
+  return fetch(url, { signal: controller.signal }).then(
+    function (response) {
+      clearTimeout(timeoutInterval);
+      if (!response.ok) {
+        throw new FartError(
+          "HttpStatusError",
+          "Response has non 2** status",
+          options
+        );
+      }
+      return response.json().catch(function (err) {
+        throw new FartError(
+          "ParseError",
+          "Response has non JSON format",
+          options
+        );
+      });
+    },
+    function (err) {
       clearTimeout(timeoutInterval);
       if (err.name === "AbortError") {
         if (timeoutAbort) {
@@ -33,36 +50,20 @@ function request(url, options, controller) {
         );
       }
       throw new FartError(err.name, err.message, options);
-    })
-    .then(function (response) {
-      clearTimeout(timeoutInterval);
-      if (!response.ok) {
-        throw new FartError(
-          "HttpStatusError",
-          "Response has non 2** status",
-          options
-        );
-      }
-      return response.json().catch(function (err) {
-        throw new FartError(
-          "ParseError",
-          "Response has non JSON format",
-          options
-        );
-      });
-    });
+    }
+  );
 }
 
 function fart(url, options) {
   var controller = new AbortController();
-  var attempts = 0;
+  var attempts = 1;
   var maxAttempts = (options && options.maxAttempts) || 2;
 
-  var promise = request(url, options, controller).catch(function (err) {
+  var promise = request(url, options, controller).catch(function retry(err) {
     if (err.name !== "FartAbortError" && attempts < maxAttempts) {
       attempts += 1;
       controller = new AbortController();
-      return request(url, options, controller);
+      return request(url, options, controller).catch(retry);
     }
 
     throw err;
