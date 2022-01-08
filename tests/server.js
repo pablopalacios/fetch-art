@@ -8,6 +8,10 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+app.get("/fart.js", (req, res) => {
+  res.sendFile(path.join(__dirname, "../index.js"));
+});
+
 app.use("/api", api);
 
 app.use("/static", express.static(path.join(__dirname, "../node_modules")));
